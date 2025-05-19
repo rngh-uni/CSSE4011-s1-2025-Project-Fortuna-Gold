@@ -5,7 +5,7 @@ Node Communication Protocol:
 
 Base Node -> Mobile Node:
 
-  UUID = 1abbe1eddeadfa11
+  UUID = 1abbe1eddeadfa110000000000000000
   
   1st byte of major is the command (1 = sensor request, 2 = mode select)
   
@@ -18,9 +18,9 @@ Base Node -> Mobile Node:
   
 Mobile Node -> Base Node:
 
-  UUID = ca11edba1d
+  UUID = ca11edba1d0000000000
 
 
 Base node -> Viewer Node:
 
-  UUID = cab1eb1ade
+  UUID = cab1eb1ade0000000000
