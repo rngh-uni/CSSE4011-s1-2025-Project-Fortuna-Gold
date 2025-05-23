@@ -5,7 +5,7 @@ Node Communication Protocol:
 
 Base Node -> Mobile Node:
 
-  UUID = 1abbe1eddeadfa110000000000000000
+  UUID = 1abbe1eddeadfa11baff1edbee5f1055 \[16 Bytes\]
   
   1st byte of major is the command (1 = sensor request, 2 = mode select)
   
@@ -18,9 +18,14 @@ Base Node -> Mobile Node:
   
 Mobile Node -> Base Node:
 
-  UUID = ca11edba1d0000000000
+  UUID = ca11edba1dfacade7a1e \[10 bytes\]
 
+  2 bytes of UUID slots: 
+    1st - Sensor flag (which sensor the data is coming from)
+    2nd - RESERVED
+  4 bytes of UUID & 4 bytes of Major and Minor:
+    8 bytes - double precision floating point in network order (big endian)
 
 Base node -> Viewer Node:
 
-  UUID = cab1eb1ade0000000000
+  UUID = cab1eb1adeca5cade0af \[10 bytes\]
