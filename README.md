@@ -20,7 +20,7 @@ Base Node -> Mobile Node:
 Mobile Node -> Base Node:
 
 <pre>
-  UUID = ca11edba1dfacade7a1e \[10 bytes\]
+  UUID = ca11edba1dfacade7a1e [10 bytes]
 
   2 bytes of UUID slots: 
     1st - Sensor flag (which sensor the data is coming from)
@@ -32,5 +32,5 @@ Mobile Node -> Base Node:
 Base node -> Viewer Node:
 
 <pre>
-  UUID = cab1eb1adeca5cade0af \[10 bytes\]
+  UUID = cab1eb1adeca5cade0af [10 bytes]
 </pre>
