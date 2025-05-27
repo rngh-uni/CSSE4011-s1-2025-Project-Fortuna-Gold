@@ -5,6 +5,7 @@ import json
 import paho.mqtt.client as mqtt
 import ssl
 from threading import Lock, Thread, current_thread, Event
+from web3 import Web3
 
 TAGOIO_DEVICE_TOKEN = 'f30ee999-d492-45df-9802-ea9c8af0d51f'
 TAGOIO_API_URL = 'https://api.tago.io/data'
@@ -35,6 +36,201 @@ tvoc_active = False
 num_of_mqtt = 0
 mode_change = False
 cur_mode = 'd'
+
+GANACHE_URL = 'http://127.0.0.1:7545'
+w3 = Web3(Web3.HTTPProvider(GANACHE_URL))
+
+
+
+
+CONTRACT_ADDRESS = '0xF56b2c06ac8E092a33E435f96a2592A8d21B3383'
+CONTRACT_ABI = json.loads('''
+[
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "temperature",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "humidity",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "C02",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "TVOC",
+				"type": "uint256"
+			}
+		],
+		"name": "DataStored",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_temperature",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_humidity",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_C02",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_TVOC",
+				"type": "uint256"
+			}
+		],
+		"name": "storeSensorData",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_index",
+				"type": "uint256"
+			}
+		],
+		"name": "getReading",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "temperature",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "humidity",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "C02",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "TVOC",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getReadingsCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "sensorReadings",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "temperature",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "humidity",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "C02",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "TVOC",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
+''')
+
+ACCOUNT_ADDRESS = w3.eth.accounts[0]
+
+contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
+
+def send_data_to_blockchain(temperature, humidity, c02, tvoc):
+    try:
+        temp_scaled = int(temperature * 1000)
+        hum_scaled = int(humidity*1000)
+        c02_scaled = int(c02 * 1000)
+        tvoc_scaled = int(tvoc*1000)
+        
+        transaction = contract.functions.storeSensorData(temp_scaled, hum_scaled, c02_scaled, tvoc_scaled).build_transaction({
+            'from': ACCOUNT_ADDRESS,
+            'nonce': w3.eth.get_transaction_count(ACCOUNT_ADDRESS),
+            'gas': 200000,
+            'gasPrice': w3.eth.gas_price
+        })
+
+        tx_hash = w3.eth.send_transaction(transaction)
+        print(f"Transaction sent! Tx_hash: {tx_hash.hex()}")
+        w3.eth.wait_for_transaction_receipt(tx_hash)
+        print("Transaction Confirmed!")
+    except Exception as e:
+        print(f"ERROR: {e}")
+
+#send_data_to_blockchain(32.45, 65.22, 345.5, 8645)
 
 
 # --- MQTT Callbacks ---
@@ -112,6 +308,12 @@ def read_serial_data(serial_port, baud_rate, ser):
                                 mqtt_payload = json.dumps(payload)
                                 mqtt_client.publish(MQTT_PUBLISH_TOPIC, mqtt_payload)
                                 print(f"Data sent to TagoIO via MQTT successfully: {mqtt_payload}")
+                                temp = float(data['temperature'])
+                                hum = float(data['humidity'])
+                                c02 = float(data['C02'])
+                                tvoc = float(data['TVOC'])
+                                print('GOT THE FOLLOWING DATA: Temp:'+str(temp)+', Hum:'+str(hum)+', C02:'+str(c02)+', TVOC:'+str(tvoc)+'\n')
+                                send_data_to_blockchain(temp, hum, c02, tvoc)
                                 time.sleep(1.4)
                             except Exception as mqtt_err:
                                 print(f"Error publishing data to MQTT: {mqtt_err}")
@@ -162,6 +364,11 @@ if __name__ == "__main__":
     mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
+    if not w3.is_connected():
+        print("Failed to connenct to Ethereum node.")
+        exit()
+    else:
+        print(f"Connected to Ethereun node: {GANACHE_URL}")
     try:
         ser = serial.Serial(serial_port, baud_rate, timeout=5)
         print(f"Connected to {serial_port} at {baud_rate} baud")
