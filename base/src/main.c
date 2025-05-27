@@ -131,15 +131,15 @@ void create_sensor_data_json() {
 #define PACKET_PREAMBLE_MOBILE 0x4c, 0x00,\
  0x1a, 0xbb, 0xe1, 0xed,\
  0xde, 0xad, 0xfa, 0x11,\
- 0x00, 0x00, 0x00, 0x00,\
- 0x00, 0x00, 0x00, 0x00
+ 0xba, 0xff, 0x1e, 0xdb,\
+ 0xee, 0x5f, 0x10, 0x55
 
  #define DEFAULT_SENSOR 0xFF, 0xFF
 
  #define PACKET_PREAMBLE_VIEWER 0x4c, 0x00,\
  0xca, 0xb1, 0xeb, 0x1a,\
- 0xde, 0x00, 0x00, 0x00,\
- 0x00, 0x00, 0x00, 0x00,\
+ 0xde, 0xca, 0x5c, 0xad,\
+ 0xe0, 0xaf, 0x00, 0x00,\
  0x00, 0x00, 0x00
 
 static uint8_t packet_data_mobile[25] = { 
@@ -208,15 +208,10 @@ static const struct bt_data ad_viewer[] = {
 				 uint8_t tempVals[8] = {uuid[12], uuid[13], uuid[14], uuid[15], (major >> 8) & 0xFF, major & 0xFF, (minor >> 8) & 0xFF, minor & 0xFF };
 				 double convertedVal;
 				 memcpy(&convertedVal, tempVals, sizeof(convertedVal));
-				 //printf("Original Bytes: ");
-				 //for (int i = 0; i < 8; i++) {
-					//printf("0x%02X ", tempVals[i]);
-				 //}
-				 //printf("\n");
-				 uint8_t sensor = uuid[11];
+				 uint8_t sensor = uuid[10];
 				 printf("sensor is: %d\n", sensor);
 				 printf("Converted to double: %lf\n", convertedVal);
-				 if (sensor == 0) { //change this to 1
+				 if (sensor == 1) { //change this to 1
 					tempSensor.value = convertedVal;
 					tempSensor.readyToTransmit = true;
 				 } else if (sensor == 2) {
@@ -229,23 +224,6 @@ static const struct bt_data ad_viewer[] = {
 					TVOCSensor.value = convertedVal;
 					TVOCSensor.readyToTransmit = true;
 				 }
-				 //  for (int i = 0; i < 8; i++) {
-				// 	RSSIs[i] = tempRSSIs[i];
-				// }
-				// bool valid = false;
-				// double tempDistances[8];
-				//  for (int i = 0; i < 8; i++) {
-				// 	//tempDistances[i] = rssi_to_distance_cm(RSSIs[i]);
-				// 	if (tempDistances[i] >= -55) {
-				// 		valid = true;
-				// 	}
-				//  } 
-				// if (valid = true) {
-				// 	for (int i = 0; i < 8; i++) {
-				// 		distances[i] = tempDistances[i];
-				// 	}
-				// 	newRSSIData = true;
-				// }
 				 
 			 } else {
 				 // Not an iBeacon
@@ -257,65 +235,9 @@ static const struct bt_data ad_viewer[] = {
 	 }
 }
 
-static void parse_ultrasonic_data(struct net_buf_simple *ad) {
-	while (ad->len > 1) {
-		uint8_t len = net_buf_simple_pull_u8(ad);
-		if (len == 0 || len > ad->len) break;
-
-		uint8_t type = net_buf_simple_pull_u8(ad);
-		if (type == BT_DATA_MANUFACTURER_DATA && len >= 25) {
-			uint8_t company_id_0 = net_buf_simple_pull_u8(ad);
-			uint8_t company_id_1 = net_buf_simple_pull_u8(ad);
-			uint8_t beacon_type = net_buf_simple_pull_u8(ad);
-			uint8_t beacon_len  = net_buf_simple_pull_u8(ad);
-
-			if (company_id_0 == 0x4C && company_id_1 == 0x00 && beacon_type == 0x02 && beacon_len == 0x15) {
-				char uuid_str[37];
-				uint8_t uuid[16];
-				for (int i = 0; i < 16; i++) {
-					uuid[i] = net_buf_simple_pull_u8(ad);
-				}
-
-				snprintf(uuid_str, sizeof(uuid_str),
-						 "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-						 uuid[0], uuid[1], uuid[2], uuid[3],
-						 uuid[4], uuid[5],
-						 uuid[6], uuid[7],
-						 uuid[8], uuid[9],
-						 uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
-
-				uint16_t major = (net_buf_simple_pull_u8(ad) << 8) | net_buf_simple_pull_u8(ad);
-				uint16_t minor = (net_buf_simple_pull_u8(ad) << 8) | net_buf_simple_pull_u8(ad);
-				int8_t tx_power = (int8_t)net_buf_simple_pull_u8(ad);
-
-				// printk("iBeacon UUID: %s\n", uuid_str);
-				// printk("Major: %x, Minor: %x, TX Power: %d dBm\n", major, minor, tx_power);
-				if (minor < 500) {
-					ultra_distance = minor;
-					newUltraData = true;
-					
-				} //else {
-					//printk("AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH");
-				//}
-			} else {
-				net_buf_simple_pull(ad, len - 4);
-			}
-		} else {
-			net_buf_simple_pull(ad, len - 1);
-		}
-	}
-}
-
-static const uint8_t expected_uuid_mobile[5] = {
-    0xCA, 0x11, 0xED, 0xBA, 0x1D
+static const uint8_t expected_uuid_mobile[10] = {
+    0xCA, 0x11, 0xED, 0xBA, 0x1D, 0xfa, 0xca, 0xde, 0x7a, 0x1e
 };
-
-// static const uint8_t expected_uuid_ultra[16] = {
-//     0xDE, 0xAD, 0xCE, 0x11,
-// 	0xCA, 0xFE, 0xBA, 0xBE,
-// 	0xDA, 0xF7, 0xDE, 0xC0,
-// 	0xDE, 0x5A, 0xD1, 0xAD
-// };
 
 static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
                     uint8_t type, struct net_buf_simple *ad)
@@ -343,119 +265,6 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
     }
 	
 }
-
-void add_ibeacon(char* name, char* mac, char* major, char* minor, char* X, char* Y, char* left, char* right) {
-	struct iBeaconNode *ibeaconA = malloc(sizeof(struct iBeaconNode));
-	if (ibeaconA != NULL) {
-		ibeaconA-> Name = strdup(name);
-		ibeaconA->macAddr = strdup(mac);
-		ibeaconA->major = strdup(major);
-		ibeaconA->minor = strdup(minor);
-		ibeaconA->Xcoord = strdup(X);
-		ibeaconA->Ycoord = strdup(Y);
-		ibeaconA->leftNeighbour = strdup(left);
-		ibeaconA->rightNeighbour = strdup(right);
-		sys_slist_append(&ibeaconNodes, &ibeaconA->next);
-		
-	}
-}
-
-void add_ibeacons() {
-	add_ibeacon("4011-A", "F5:75:FE:85:34:67", "2753", "32998", "0", "0", "4011-H", "4011-B");
-	add_ibeacon("4011-B", "E5:73:87:06:1E:86", "32975", "20959", "0", "0", "4011-A", "4011-C");
-	add_ibeacon("4011-C", "CA:99:9E:FD:98:B1", "26679", "40363", "0", "0", "4011-B", "4011-D");
-	add_ibeacon("4011-D", "CB:1B:89:82:FF:FE", "41747", "38800", "0", "0", "4011-C", "4011-E");
-	add_ibeacon("4011-E", "D4:D2:A0:A4:5C:AC", "30679", "51963", "0", "0", "4011-D", "4011-F");
-	add_ibeacon("4011-F", "C1:13:27:E9:B7:7C", "6195", "18394", "0", "0", "4011-E", "4011-G");
-	add_ibeacon("4011-G", "F1:04:48:06:39:A0", "30525", "30544", "0", "0", "4011-F", "4011-H");
-	add_ibeacon("4011-H", "CA:0C:E0:DB:CE:60", "57395", "28931", "0", "0", "4011-G", "4011-A");
-}
-
-struct iBeaconNode* get_ibeacon_node(sys_snode_t* node_ptr) {
-    if (node_ptr == NULL) {
-        return NULL;
-    }
-    return (struct iBeaconNode*)((char*)node_ptr - offsetof(struct iBeaconNode, next));
-}
-
-int remove_node(char* targetName) {
-    sys_snode_t *current_snode = sys_slist_peek_head(&ibeaconNodes);
-	k_sleep(K_MSEC(1000));
-    sys_snode_t *prev_snode = NULL;
-    struct iBeaconNode *current_node;
-
-    while (current_snode != NULL) {
-        current_node = get_ibeacon_node(current_snode);
-        if (current_node->Name != NULL && strcmp(current_node->Name, targetName) == 0) {
-            sys_slist_remove(&ibeaconNodes, prev_snode, current_snode);
-            return 0;
-        }
-        prev_snode = current_snode;
-        current_snode = sys_slist_peek_next(current_snode);
-    }
-
-    return -ENOENT;
-}
-
-void sheller(void){
-	#if DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_shell_uart), zephyr_cdc_acm_uart)
-		 const struct device *dev;
-		 uint32_t dtr = 0;
-	
-		 dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
-		while (!dtr) {
-			uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
-			k_sleep(K_MSEC(100));
-		}
-	#endif
-	sys_slist_init(&ibeaconNodes);
-	add_ibeacons();
-}
-
-void cmd_iBeacon(const struct shell *sh, size_t argc, char **argv) {
-	if (strcmp(argv[1], "list") == 0 && argc == 3) {
-		if (strcmp(argv[2], "all") == 0) {
-			sys_snode_t *current;
-			SYS_SLIST_FOR_EACH_NODE(&ibeaconNodes, current) {
-				struct iBeaconNode *item = CONTAINER_OF(current, struct iBeaconNode, next);
-				printk("Name: %s\n", item->Name);
-				printk("MAC Address: %s\n", item->macAddr);
-				printk("Major Value: %s\n", item->major);
-				printk("Minor Value: %s\n", item->minor);
-				printk("X Coordinate: %s\n", item->Xcoord);
-				printk("Y Coordinate: %s\n", item->Ycoord);
-				printk("Left Neighbour: %s\n", item->leftNeighbour);
-				printk("Right Neighbour: %s\n", item->rightNeighbour);
-				printk("\n");
-			}
-		} else {
-			sys_snode_t *current;
-			SYS_SLIST_FOR_EACH_NODE(&ibeaconNodes, current) {
-				struct iBeaconNode *item = CONTAINER_OF(current, struct iBeaconNode, next);
-				if (strcmp(item->Name, argv[2]) == 0){
-					printk("Name: %s\n", item->Name);
-					printk("MAC Address: %s\n", item->macAddr);
-					printk("Major Value: %s\n", item->major);
-					printk("Minor Value: %s\n", item->minor);
-					printk("X Coordinate: %s\n", item->Xcoord);
-					printk("Y Coordinate: %s\n", item->Ycoord);
-					printk("Left Neighbour: %s\n", item->leftNeighbour);
-					printk("Right Neighbour: %s\n", item->rightNeighbour);
-					printk("\n");
-				}
-			}
-		}
-	} else if (strcmp(argv[1], "add") == 0 && argc == 10) {
-		add_ibeacon(argv[2], argv[3], argv[4], argv[5], argv[6], argv[7], argv[8], argv[9]);
-	//} else if (strcmp(argv[1], "test") == 0) {
-		//construct_linear_system_v3();
-    	//solve_least_squares();
-	} else if (strcmp(argv[1], "remove") == 0 && argc == 3) {
-		remove_node(argv[2]);
-	}
-}
- 
-SHELL_CMD_ARG_REGISTER(iBeacon, NULL, "iBeacon", cmd_iBeacon, 2, 9);
  
  int bluetooth_driver(void)
  {
@@ -525,8 +334,8 @@ SHELL_CMD_ARG_REGISTER(iBeacon, NULL, "iBeacon", cmd_iBeacon, 2, 9);
 				}
         		printk("Ending broadcast to mobile\n");
 				send_cmd_to_mobile = false;
-		//} else if (tempSensor.readyToTransmit && humSensor.readyToTransmit && C02Sensor.readyToTransmit && TVOCSensor.readyToTransmit) {
-		} else if (tempSensor.readyToTransmit) {
+		} else if (tempSensor.readyToTransmit && humSensor.readyToTransmit && C02Sensor.readyToTransmit && TVOCSensor.readyToTransmit) {
+		//} else if (tempSensor.readyToTransmit) {
 			printf("SENDING temp: %f\n", tempSensor.value);
 			tempSensor.readyToTransmit = false;
 			printf("SENDING humidity: %f\n", humSensor.value);
@@ -774,8 +583,6 @@ void serialInput_driver(void) {
 	}
 }
  
-K_THREAD_DEFINE(sheller_id, STACKSIZE, sheller, NULL, NULL, NULL,
-	PRIORITY, 0, 0);
 K_THREAD_DEFINE(bluetooth_id, STACKSIZE, bluetooth_driver, NULL, NULL, NULL,
 	PRIORITY, 0, 0);
 K_THREAD_DEFINE(dashboard_id, STACKSIZE, dashboard_driver, NULL, NULL, NULL,
