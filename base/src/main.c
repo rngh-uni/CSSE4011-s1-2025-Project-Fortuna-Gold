@@ -129,6 +129,7 @@ void create_sensor_data_json() {
 #define DEFAULT_CMD 0x00, 0x00, 0x00, 0x00
 
 #define PACKET_PREAMBLE_MOBILE 0x4c, 0x00,\
+ 0x02, 0x15, \
  0x1a, 0xbb, 0xe1, 0xed,\
  0xde, 0xad, 0xfa, 0x11,\
  0xba, 0xff, 0x1e, 0xdb,\
@@ -137,6 +138,7 @@ void create_sensor_data_json() {
  #define DEFAULT_SENSOR 0xFF, 0xFF
 
  #define PACKET_PREAMBLE_VIEWER 0x4c, 0x00,\
+ 0x02, 0x15, \
  0xca, 0xb1, 0xeb, 0x1a,\
  0xde, 0xca, 0x5c, 0xad,\
  0xe0, 0xaf, 0x00, 0x00,\
@@ -205,7 +207,8 @@ static const struct bt_data ad_viewer[] = {
 				 //printk("iBeacon UUID: %s\n", uuid_str);
 				 //printk("Major: %x, Minor: %x, TX Power: %d dBm\n", major, minor, tx_power);
 
-				 uint8_t tempVals[8] = {uuid[12], uuid[13], uuid[14], uuid[15], (major >> 8) & 0xFF, major & 0xFF, (minor >> 8) & 0xFF, minor & 0xFF };
+				 //uint8_t tempVals[8] = {uuid[12], uuid[13], uuid[14], uuid[15], (major >> 8) & 0xFF, major & 0xFF, (minor >> 8) & 0xFF, minor & 0xFF };
+				 uint8_t tempVals[8] = {minor & 0xFF, (minor >> 8) & 0xFF, major & 0xFF, (major >> 8) & 0xFF, uuid[15], uuid[14], uuid[13], uuid[12] };
 				 double convertedVal;
 				 memcpy(&convertedVal, tempVals, sizeof(convertedVal));
 				 uint8_t sensor = uuid[10];
@@ -253,7 +256,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
             if (data[0] == 0x4C && data[1] == 0x00 &&  // Apple Company ID
                 data[2] == 0x02 && data[3] == 0x15) {  // iBeacon type + length
                 const uint8_t *uuid = &data[4];
-                if (memcmp(uuid, expected_uuid_mobile, 5) == 0) {
+                if (memcmp(uuid, expected_uuid_mobile, 10) == 0) {
                     char addr_str[BT_ADDR_LE_STR_LEN];
                     bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
                     //printk("✅ Found target iBeacon with UUID at %s, RSSI: %d dBm\n", addr_str, rssi);
@@ -299,7 +302,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
     if (err) {
 		printk("Advertising failed to start (err %d)\n", err);
 	}
-    k_msleep(400);
+    k_msleep(200);
 	err = bt_le_adv_stop();
     if (err) {
 		printk("Advertising failed to stop (err %d)\n", err);
@@ -501,7 +504,9 @@ void serialInput_driver(void) {
 		//print_uart("Echo: ");
 		//print_uart(tx_buf);
 		//print_uart("\r\n");
+		printk("sending: ");
 		printk("%s\n", tx_buf);
+		printk("SENT\n");
 		//do the strcmp stuff
 		char firstThree[4];
 		strncpy(firstThree, tx_buf, 3);
