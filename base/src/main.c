@@ -41,6 +41,7 @@ bool send_cmd_to_mobile = false;
 int cmd_to_mobile = 0;
 int modeInput = 0;
 int sensorInput = 0;
+int curMode = 1; //1 for descite, 2 for continousous
 
 #define STACKSIZE 4096
 #define PRIORITY 7
@@ -316,7 +317,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 				uint8_t low_byte_X = (uint8_t)sensorInput;
     			uint8_t high_byte_X = (uint8_t)cmd_to_mobile;
 				uint8_t low_byte_Y = 0;
-    			uint8_t high_byte_Y = (uint8_t)modeInput;
+    			uint8_t high_byte_Y = (uint8_t)curMode;
 				packet_data_mobile[20] = high_byte_X;
 				packet_data_mobile[21] = low_byte_X;
 				packet_data_mobile[22] = high_byte_Y;
@@ -567,23 +568,30 @@ void serialInput_driver(void) {
 					modeInput = 1;
 					printk("RECEIVED A COMMAND\n");
 					send_cmd_to_mobile = true;
+					if (curMode == 1) {
+						curMode = 2;
+					} else {
+						curMode = 1;
+					}
 				
 				// d for discrete
 				} else if (strcmp(modeSelect, "d") == 0) {
 					modeInput = 2;
 					printk("RECEIVED A COMMAND\n");
 					send_cmd_to_mobile = true;
+					curMode = 1;
 					
 				// c for continuous
 				} else if (strcmp(modeSelect, "c") == 0) {
 					modeInput = 3;
 					printk("RECEIVED A COMMAND\n");
 					send_cmd_to_mobile = true;
+					curMode = 2;
 				}
 			}
 			
-		} else {
-			printk("%s\n", firstThree);
+		//} else {
+			//printk("%s\n", firstThree);
 		}
 	}
 }
