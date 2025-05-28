@@ -164,12 +164,9 @@ int bluetooth_read(void)
 
 int main(void)
 {
-    char val_buf[32];
     const struct device *display_dev;
-
-    lv_obj_t *hello_world_label;
-    lv_obj_t *bt_label1;
-    lv_obj_t *bt_label2;
+    lv_obj_t *chart;
+    lv_chart_series_t *series;
 
     display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
     if (!device_is_ready(display_dev)) {
@@ -177,27 +174,40 @@ int main(void)
         return 0;
     }
 
-    hello_world_label = lv_label_create(lv_screen_active());
-    lv_label_set_text(hello_world_label, "");
-    lv_obj_align(hello_world_label, LV_ALIGN_CENTER, 0, 0);
+    // Bar chart setup (FULL SCREEN)
+    chart = lv_chart_create(lv_screen_active());
+    lv_obj_set_size(chart, LV_HOR_RES, LV_VER_RES);
+    lv_obj_align(chart, LV_ALIGN_CENTER, 0, 0);
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 100);  // Max range
+    lv_chart_set_point_count(chart, 4);  // 4 sensor bars
 
-    bt_label1 = lv_label_create(lv_screen_active());
-    lv_obj_align(bt_label1, LV_ALIGN_TOP_LEFT, 5, 20);
+    series = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
 
-    bt_label2 = lv_label_create(lv_screen_active());
-    lv_obj_align(bt_label2, LV_ALIGN_TOP_LEFT, 5, 50);
+    // Add labels above each bar (adjust positions based on full-screen size)
+    static const char *labels[] = {"40", "90", "cc", "v/acc"};
+    for (int i = 0; i < 4; i++) {
+        lv_obj_t *lbl = lv_label_create(lv_screen_active());
+        lv_label_set_text(lbl, labels[i]);
+        int x_offset = (LV_HOR_RES / 4) * i + (LV_HOR_RES / 8) - 10;
+        lv_obj_align(lbl, LV_ALIGN_TOP_LEFT, x_offset, 10);
+    }
 
     lv_timer_handler();
     display_blanking_off(display_dev);
 
-    bluetooth_read();
+    bluetooth_read();  // Start BLE scanning
 
     while (1) {
-        sprintf(val_buf, "X: %f", ((double)coords[0])/10000);
-        lv_label_set_text(bt_label1, val_buf);
+        double fake_x = 11;
+        double fake_y = 23;
 
-        sprintf(val_buf, "Y: %f", ((double)coords[1])/10000);
-        lv_label_set_text(bt_label2, val_buf);
+        // Fill bar values: X in first two, Y in last two
+        lv_chart_set_value_by_id(chart, series, 0, fake_x);
+        lv_chart_set_value_by_id(chart, series, 1, fake_x);
+        lv_chart_set_value_by_id(chart, series, 2, fake_y);
+        lv_chart_set_value_by_id(chart, series, 3, fake_y);
+        lv_chart_refresh(chart);
 
         lv_timer_handler();
         k_sleep(K_MSEC(100));
