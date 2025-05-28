@@ -115,7 +115,6 @@ static void parse_packet_data(struct net_buf_simple *ad) {
         if (len == 0 || len > ad->len) break;
 
         uint8_t type = net_buf_simple_pull_u8(ad);
-
         if (type == BT_DATA_MANUFACTURER_DATA && len >= 25) {
             uint8_t company_id_0 = net_buf_simple_pull_u8(ad);
 			uint8_t company_id_1 = net_buf_simple_pull_u8(ad);
@@ -123,6 +122,7 @@ static void parse_packet_data(struct net_buf_simple *ad) {
 			uint8_t beacon_len  = net_buf_simple_pull_u8(ad);
 
             if (company_id_0 == 0x4C && company_id_1 == 0x00 && beacon_type == 0x02 && beacon_len == 0x15) {
+                //printk("id & manufacturer verified\n");
                 uint8_t uuid[16];
                 for (int i = 0; i < 16; i++) {
                     uuid[i] = net_buf_simple_pull_u8(ad);
@@ -149,11 +149,13 @@ static void parse_packet_data(struct net_buf_simple *ad) {
                     (sensor_flag_byte & (1 << 3)) ? (mobile_flags |= (1 << 3)) : (mobile_flags &= ~(1 << 3));
 
                     // Let sensors update
+                    //printk("Let sensors update\n");
                     k_sem_give(&sensor_update_sem);
                 }
                 
                 // mode select
                 if (command_byte & 0x02) {
+                    printk("Mode Select\n");
                     // toggle
                     if (mode_select_byte & 0x01) {
                         mobile_flags ^= (1 << 4);
@@ -170,7 +172,11 @@ static void parse_packet_data(struct net_buf_simple *ad) {
                         continue;
                     }
                 }
+            } else {
+                net_buf_simple_pull(ad, len - 4);
             }
+        } else {
+            net_buf_simple_pull(ad, len - 1);
         }
     }
     
@@ -193,6 +199,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
                 if (memcmp(uuid, expected_uuid_base, 16) == 0) {
                     char addr_str[BT_ADDR_LE_STR_LEN];
                     bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
+                    //printk("Packet Recieved\n");
                     parse_packet_data(ad);
                 }
             }
@@ -355,10 +362,6 @@ void broadcast_sensors_entry_point() {
     while (1) {
         k_sem_take(&data_broadcast_sem, K_FOREVER);
         // broadcast depending on flags
-        //if (mobile_flags & (1 << 0)) bt_le_ext_adv_start(adv[0], BT_LE_EXT_ADV_START_DEFAULT);
-        //if (mobile_flags & (1 << 1)) bt_le_ext_adv_start(adv[1], BT_LE_EXT_ADV_START_DEFAULT);
-        //if (mobile_flags & (1 << 2)) bt_le_ext_adv_start(adv[2], BT_LE_EXT_ADV_START_DEFAULT);
-        //if (mobile_flags & (1 << 3)) bt_le_ext_adv_start(adv[3], BT_LE_EXT_ADV_START_DEFAULT);
 
         gpio_pin_set_dt(&led_green, 1);
         gpio_pin_set_dt(&led_red, 0);
@@ -387,7 +390,7 @@ void broadcast_sensors_entry_point() {
         //k_msleep(DEFAULT_DELAY);
 
         // if not continuous, don't give semaphore back
-        if (!(mobile_flags & (1 << 4))) continue;
+        if (!(mobile_flags & (1 << 4))) {continue;}
         
         gpio_pin_set_dt(&led_green, 0);
         gpio_pin_set_dt(&led_red, 1);
@@ -416,6 +419,8 @@ int bt_scanner_entry_point() {
         printk("Bluetooth init failed (err %d)\n", err);
         return err;
     }
+
+    printk("Scanning initialized\n");
 
     err = bt_le_scan_start(&scan_param, scan_cb);
     if (err) {
