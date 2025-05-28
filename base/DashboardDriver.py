@@ -288,7 +288,7 @@ def read_serial_data(serial_port, baud_rate, ser):
             line = ser.readline().decode('utf-8').rstrip()
             if line:
                 valid = True
-                #print(f"Received: {line}")
+                print(f"Received: {line}")
                 if"JSON:" in line:
                     try:
                         json_start_index = line.find("JSON:")
@@ -332,7 +332,7 @@ def read_serial_data(serial_port, baud_rate, ser):
     
 
 def send_serial_data(serial_port, baud_rate, ser):
-        global num_of_mqtt, cur_mode
+        global num_of_mqtt, cur_mode, mode_change
         while 1:
             if num_of_mqtt >= 4:
                 message = "cmd s "
@@ -345,13 +345,15 @@ def send_serial_data(serial_port, baud_rate, ser):
                     val += 4
                 if tvoc_active:
                     val += 8
-                message += str(val)+ "\n"
+                message += str(val)+ "\r"
                 ser.write(message.encode())
                 print("got here, message is: " + message)
                 num_of_mqtt = 0
             elif mode_change:
-                message = "cmd m " + cur_mode +"\n"
+                print("writing a mode change")
+                message = "cmd m " + cur_mode +"\r"
                 ser.write(message.encode())
+                mode_change = False
             time.sleep(1)
         
 
