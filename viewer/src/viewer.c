@@ -47,16 +47,27 @@ LOG_MODULE_REGISTER(viewer);
  uint16_t coords[2];
  int bluetooth_read(void);
 
+ double sensorVals[4] = {0, 0, 0, 0}; //temp, Hum, CO2, tvoc
+
  static const struct bt_data ad[] = {
      BT_DATA(BT_DATA_MANUFACTURER_DATA, mfg_data, 3),
  };
  
-static const uint8_t expected_uuid_mobile[16] = {
-    0x01, 0x23, 0x45, 0x67,
-	0x89, 0xab, 0xcd, 0xef,
-	0xbe, 0xef, 0xde, 0xad,
-	0xaa, 0xaa, 0xaa, 0xaa
-};
+static const uint8_t expected_uuid_mobile[10] = {0xca, 0xb1, 0xeb, 0x1a, 0xde, 0xca, 0x5c, 0xad, 0xe0, 0xaf};
+
+float scale_value(float value, int sensor){
+    float returnVal = 0;
+    if(sensor == 0){
+        returnVal = (value/40)*100;
+    } else if(sensor == 1) {
+        returnVal = value;
+    } else if(sensor == 2) {
+        returnVal = value;
+    } else {
+        returnVal = (value/1000)*100;
+    }
+    return returnVal;
+}
 
 static void parse_ultrasonic_data(struct net_buf_simple *ad) {
 	while (ad->len > 1) {
@@ -87,10 +98,21 @@ static void parse_ultrasonic_data(struct net_buf_simple *ad) {
 
 				uint16_t major = (net_buf_simple_pull_u8(ad) << 8) | net_buf_simple_pull_u8(ad);
 				uint16_t minor = (net_buf_simple_pull_u8(ad) << 8) | net_buf_simple_pull_u8(ad);
-				x_coord = major;
-                y_coord = minor;
-                coords[0] = x_coord;
-                coords[1] = y_coord;
+                uint8_t tempVals[8] = {minor & 0xFF, (minor >> 8) & 0xFF, major & 0xFF, (major >> 8) & 0xFF, uuid[15], uuid[14], uuid[13], uuid[12] };
+				double convertedVal;
+				memcpy(&convertedVal, tempVals, sizeof(convertedVal));
+				uint8_t sensor = uuid[10];
+				printf("sensor is: %d\n", sensor);
+				printf("Converted to double: %lf\n", convertedVal);
+				if (sensor == 1) { //change this to 1
+                    sensorVals[0] = scale_value(convertedVal, 0);
+				} else if (sensor == 2) {
+					sensorVals[1] = scale_value(convertedVal, 1);
+				} else if (sensor == 4) {
+					sensorVals[2] = scale_value(convertedVal, 2);
+				} else if (sensor == 8) {
+					sensorVals[3] = scale_value(convertedVal, 3);
+				}
 			} else {
 				net_buf_simple_pull(ad, len - 4);
 			}
@@ -114,12 +136,12 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
             if (data[0] == 0x4C && data[1] == 0x00 &&  // Apple Company ID
                 data[2] == 0x02 && data[3] == 0x15) {  // iBeacon type + length
                 const uint8_t *uuid = &data[4];
-                if (memcmp(uuid, expected_uuid_mobile, 16) == 0) {
+                if (memcmp(uuid, expected_uuid_mobile, 10) == 0) {
                     char addr_str[BT_ADDR_LE_STR_LEN];
                     bt_addr_le_to_str(addr, addr_str, sizeof(addr_str));
                     // printk("Found target iBeacon with UUID at %s, RSSI: %d dBm\n", addr_str, rssi);
 					parse_ultrasonic_data(ad);
-                    printf("x: %f, y:%f\n", ((double)coords[0])/10000, ((double)coords[1])/10000);
+                    printf("temp: %f, hum:%f, CO2: %f, tvoc: %f\n", ((double)sensorVals[0]), ((double)sensorVals[1]), ((double)sensorVals[2]), ((double)sensorVals[3]));
                 }
             }
         }
@@ -185,7 +207,7 @@ int main(void)
     series = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
 
     // Add labels above each bar (adjust positions based on full-screen size)
-    static const char *labels[] = {"40", "90", "cc", "v/acc"};
+    static const char *labels[] = {"40C", "100", "1000ppm", "100"};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *lbl = lv_label_create(lv_screen_active());
         lv_label_set_text(lbl, labels[i]);
@@ -199,14 +221,11 @@ int main(void)
     bluetooth_read();  // Start BLE scanning
 
     while (1) {
-        double fake_x = 11;
-        double fake_y = 23;
-
         // Fill bar values: X in first two, Y in last two
-        lv_chart_set_value_by_id(chart, series, 0, fake_x);
-        lv_chart_set_value_by_id(chart, series, 1, fake_x);
-        lv_chart_set_value_by_id(chart, series, 2, fake_y);
-        lv_chart_set_value_by_id(chart, series, 3, fake_y);
+        lv_chart_set_value_by_id(chart, series, 0, sensorVals[0]);
+        lv_chart_set_value_by_id(chart, series, 1, sensorVals[1]);
+        lv_chart_set_value_by_id(chart, series, 2, sensorVals[2]);
+        lv_chart_set_value_by_id(chart, series, 3, sensorVals[3]);
         lv_chart_refresh(chart);
 
         lv_timer_handler();
