@@ -215,6 +215,9 @@ static const struct bt_data ad_viewer[] = {
 				 uint8_t sensor = uuid[10];
 				 printf("sensor is: %d\n", sensor);
 				 printf("Converted to double: %lf\n", convertedVal);
+				 if (isnan(convertedVal)){
+					convertedVal = 0;
+				 }
 				 if (sensor == 1) { //change this to 1
 					tempSensor.value = convertedVal;
 					tempSensor.readyToTransmit = true;
@@ -568,10 +571,10 @@ void serialInput_driver(void) {
 					modeInput = 1;
 					printk("RECEIVED A COMMAND\n");
 					send_cmd_to_mobile = true;
-					if (curMode == 1) {
-						curMode = 2;
+					if (curMode == 2) {
+						curMode = 3;
 					} else {
-						curMode = 1;
+						curMode = 2;
 					}
 				
 				// d for discrete
@@ -579,14 +582,14 @@ void serialInput_driver(void) {
 					modeInput = 2;
 					printk("RECEIVED A COMMAND\n");
 					send_cmd_to_mobile = true;
-					curMode = 1;
+					curMode = 2;
 					
 				// c for continuous
 				} else if (strcmp(modeSelect, "c") == 0) {
 					modeInput = 3;
 					printk("RECEIVED A COMMAND\n");
 					send_cmd_to_mobile = true;
-					curMode = 2;
+					curMode = 3;
 				}
 			}
 			
