@@ -55,8 +55,8 @@ LOG_MODULE_REGISTER(viewer);
  
 static const uint8_t expected_uuid_mobile[10] = {0xca, 0xb1, 0xeb, 0x1a, 0xde, 0xca, 0x5c, 0xad, 0xe0, 0xaf};
 
-float scale_value(float value, int sensor){
-    float returnVal = 0;
+double scale_value(double value, int sensor){
+    double returnVal = 0;
     if(sensor == 0){
         returnVal = (value/40)*100;
     } else if(sensor == 1) {
@@ -207,7 +207,7 @@ int main(void)
     series = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
 
     // Add labels above each bar (adjust positions based on full-screen size)
-    static const char *labels[] = {"40C", "100", "1000ppm", "100"};
+    static const char *labels[] = {"40°C", "100%", "1000ppm", "100ppb"};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *lbl = lv_label_create(lv_screen_active());
         lv_label_set_text(lbl, labels[i]);
@@ -222,10 +222,10 @@ int main(void)
 
     while (1) {
         // Fill bar values: X in first two, Y in last two
-        lv_chart_set_value_by_id(chart, series, 0, sensorVals[0]);
-        lv_chart_set_value_by_id(chart, series, 1, sensorVals[1]);
-        lv_chart_set_value_by_id(chart, series, 2, sensorVals[2]);
-        lv_chart_set_value_by_id(chart, series, 3, sensorVals[3]);
+        lv_chart_set_value_by_id(chart, series, 0, (int)sensorVals[0]);
+        lv_chart_set_value_by_id(chart, series, 1, (int)sensorVals[1]);
+        lv_chart_set_value_by_id(chart, series, 2, (int)sensorVals[2]);
+        lv_chart_set_value_by_id(chart, series, 3, (int)sensorVals[3]);
         lv_chart_refresh(chart);
 
         lv_timer_handler();
