@@ -61,9 +61,9 @@ double scale_value(double value, int sensor){
     } else if(sensor == 1) {
         returnVal = value;
     } else if(sensor == 2) {
-        returnVal = (value/1000)*100;
+        returnVal = (value/3000)*100;
     } else {
-        returnVal = (value/1000)*100;
+        returnVal = (value/1500)*100;
     }
     return returnVal;
 }
@@ -215,7 +215,7 @@ int main(void)
     series = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_BLUE), LV_CHART_AXIS_PRIMARY_Y);
 
     // Add labels above each bar (adjust positions based on full-screen size)
-    static const char *labels[] = {"40", "100%", "1000ppm", "1000ppb"};
+    static const char *labels[] = {"40", "100%", "3000ppm", "1500ppb"};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *lbl = lv_label_create(lv_screen_active());
         lv_label_set_text(lbl, labels[i]);
@@ -230,7 +230,7 @@ int main(void)
 
     while (1) {
 
-        // Fill bar values: X in first two, Y in last two
+        // Fill bar values: X in first two, Y in lat two
         lv_chart_set_value_by_id(chart, series, 0, scale_value(sensorVals[0], 0));
         lv_chart_set_value_by_id(chart, series, 1, scale_value(sensorVals[1], 1));
         lv_chart_set_value_by_id(chart, series, 2, scale_value(sensorVals[2], 2));
