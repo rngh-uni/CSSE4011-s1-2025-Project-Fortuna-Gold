@@ -1,23 +1,15 @@
-/* main.c - Application main entry point */
-
-/*
- * Copyright (c) 2015-2016 Intel Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
- #include <zephyr/kernel.h>
- #include <zephyr/shell/shell.h>
- #include <zephyr/version.h>
- #include <zephyr/logging/log.h>
- #include <zephyr/drivers/uart.h>
- #include <zephyr/usb/usb_device.h>
- #include <ctype.h>
- #include <zephyr/types.h>
- #include <stddef.h>
- #include <zephyr/sys/printk.h>
- #include <zephyr/sys/util.h>
- #include <zephyr/kernel.h>
+#include <zephyr/kernel.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/version.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/usb/usb_device.h>
+#include <ctype.h>
+#include <zephyr/types.h>
+#include <stddef.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/printk.h>
@@ -25,17 +17,17 @@
 #include <string.h>
 #include <zephyr/sys/slist.h>
  
- #include <zephyr/bluetooth/bluetooth.h>
- #include <stdio.h>
- #include <stdint.h>
- #include <stdlib.h>
- #include <math.h>
- #include <assert.h>
- #include <zephyr/data/json.h>
+#include <zephyr/bluetooth/bluetooth.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <math.h>
+#include <assert.h>
+#include <zephyr/data/json.h>
 
-double total_distance_travelled = 0;
-double average_velocity = 0;
-int8_t MeasuredPower = -55;
+//double total_distance_travelled = 0;
+//double average_velocity = 0;
+//int8_t MeasuredPower = -55;
 
 bool send_cmd_to_mobile = false;
 int cmd_to_mobile = 0;
@@ -60,35 +52,30 @@ struct sensor_data {
 };
 
 struct sensor_data tempSensor = {1, false, 0};
-//tempSensor.sensor = 1;
-//tempSensor.readyToTransmit = false;
-//tempSensor.value = 0;
 
 struct sensor_data humSensor = {2, false, 0};
 struct sensor_data C02Sensor = {4, false, 0};
 struct sensor_data TVOCSensor = {8, false, 0};
 
-//tempSensor.sensor = 1;
+// struct iBeaconNode {
+// 	const char* Name;
+// 	const char* macAddr;
+// 	const char* major;
+// 	const char* minor;
+// 	const char* Xcoord;
+// 	const char* Ycoord;
+// 	const char* leftNeighbour;
+// 	const char* rightNeighbour;
+// 	sys_snode_t next;
+// };
 
-struct iBeaconNode {
-	const char* Name;
-	const char* macAddr;
-	const char* major;
-	const char* minor;
-	const char* Xcoord;
-	const char* Ycoord;
-	const char* leftNeighbour;
-	const char* rightNeighbour;
-	sys_snode_t next;
-};
-
-sys_slist_t ibeaconNodes;
-int8_t RSSIs[8];
-double distances[8];
-bool newRSSIData;
-bool newUltraData;
-uint16_t ultra_distance;
-double ultrasonic_sensor_pos[2] = {1.5, 0};
+// sys_slist_t ibeaconNodes;
+// int8_t RSSIs[8];
+// double distances[8];
+// bool newRSSIData;
+// bool newUltraData;
+// uint16_t ultra_distance;
+// double ultrasonic_sensor_pos[2] = {1.5, 0};
 
 static const struct json_obj_descr sensor_data_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct json_sensor_data, temperature, JSON_TOK_STRING),
@@ -306,7 +293,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
     if (err) {
 		printk("Advertising failed to start (err %d)\n", err);
 	}
-    k_msleep(200);
+    k_msleep(500);
 	err = bt_le_adv_stop();
     if (err) {
 		printk("Advertising failed to stop (err %d)\n", err);
@@ -332,7 +319,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 					printk("Advertising failed to start (err %d)\n", err);
 					return;
 				}
-        		k_msleep(1000);
+        		k_msleep(400);
 
 				err = bt_le_adv_stop();
         		if (err) {
@@ -352,16 +339,10 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 			printf("SENDING TVOC: %f\n", TVOCSensor.value);
 			TVOCSensor.readyToTransmit = false;
 
-			//DO THE DASHBOARD STUFF HERE
 			create_sensor_data_json();
 			
 			uint8_t eight_byte_array[8] = {0,0,0,0,0,0,0,0};
 			memcpy(eight_byte_array, &tempSensor.value, sizeof(tempSensor.value));
-			// printf("Converted to Bytes (System Endianness): ");
-    		// for (int i = 0; i < 8; i++) {
-    		//     printf("0x%02X ", eight_byte_array[i]);
-    		// }
-    		// printf("\n");
 			packet_data_viewer[14] = (uint8_t)tempSensor.sensor;
 			packet_data_viewer[15] = 0;
 			packet_data_viewer[16] = eight_byte_array[0];
@@ -373,6 +354,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 			packet_data_viewer[22] = eight_byte_array[6];
 			packet_data_viewer[23] = eight_byte_array[7];
 			transmit_to_viewer();
+			k_msleep(200);
 
 			memcpy(eight_byte_array, &humSensor.value, sizeof(humSensor.value));
 			packet_data_viewer[14] = (uint8_t)humSensor.sensor;
@@ -386,6 +368,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 			packet_data_viewer[22] = eight_byte_array[6];
 			packet_data_viewer[23] = eight_byte_array[7];
 			transmit_to_viewer();
+			k_msleep(200);
 
 			memcpy(eight_byte_array, &C02Sensor.value, sizeof(C02Sensor.value));
 			packet_data_viewer[14] = (uint8_t)C02Sensor.sensor;
@@ -399,6 +382,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 			packet_data_viewer[22] = eight_byte_array[6];
 			packet_data_viewer[23] = eight_byte_array[7];
 			transmit_to_viewer();
+			k_msleep(200);
 
 			memcpy(eight_byte_array, &TVOCSensor.value, sizeof(TVOCSensor.value));
 			packet_data_viewer[14] = (uint8_t)TVOCSensor.sensor;
@@ -415,29 +399,22 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 
 			k_msleep(500);
 		} else {
-			k_msleep(500);
+			k_msleep(100);
 		}		
 	}
 }
 
-/* change this to any other UART peripheral if desired */
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
 
 #define MSG_SIZE 32
 
-/* queue to store up to 10 messages (aligned to 4-byte boundary) */
 K_MSGQ_DEFINE(uart_msgq, MSG_SIZE, 10, 4);
 
 static const struct device *const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
 
-/* receive buffer used in UART ISR callback */
 static char rx_buf[MSG_SIZE];
 static int rx_buf_pos;
 
-/*
- * Read characters from UART until line end is detected. Afterwards push the
- * data to the message queue.
- */
 void serial_cb(const struct device *dev, void *user_data)
 {
 	uint8_t c;
@@ -450,34 +427,23 @@ void serial_cb(const struct device *dev, void *user_data)
 		return;
 	}
 
-	/* read until FIFO empty */
 	while (uart_fifo_read(uart_dev, &c, 1) == 1) {
 		if ((c == '\n' || c == '\r') && rx_buf_pos > 0) {
-			/* terminate string */
 			rx_buf[rx_buf_pos] = '\0';
 
-			/* if queue is full, message is silently dropped */
 			k_msgq_put(&uart_msgq, &rx_buf, K_NO_WAIT);
 
-			/* reset the buffer (it was copied to the msgq) */
 			rx_buf_pos = 0;
 		} else if (rx_buf_pos < (sizeof(rx_buf) - 1)) {
 			rx_buf[rx_buf_pos++] = c;
 		}
-		/* else: characters beyond buffer size are dropped */
 	}
 }
 
-/*
- * Print a null-terminated string character by character to the UART interface
- */
 void print_uart(char *buf)
 {
 	int msg_len = strlen(buf);
 	printk("%s", buf);
-	// for (int i = 0; i < msg_len; i++) {
-	// 	uart_poll_out(uart_dev, buf[i]);
-	// }
 }
 
 void serialInput_driver(void) {
@@ -486,7 +452,6 @@ void serialInput_driver(void) {
 		printk("UART device not found!");
 	}
 
-	/* configure interrupt and callback to receive data */
 	int ret = uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
 
 	if (ret < 0) {
@@ -503,15 +468,10 @@ void serialInput_driver(void) {
 	print_uart("Hello! I'm your echo bot.\r\n");
 	print_uart("Tell me something and press enter:\r\n");
 
-	/* indefinitely wait for input from the user */
 	while (k_msgq_get(&uart_msgq, &tx_buf, K_FOREVER) == 0) {
-		//print_uart("Echo: ");
-		//print_uart(tx_buf);
-		//print_uart("\r\n");
 		printk("sending: ");
 		printk("%s\n", tx_buf);
 		printk("SENT\n");
-		//do the strcmp stuff
 		char firstThree[4];
 		strncpy(firstThree, tx_buf, 3);
 		firstThree[3] = '\0';
@@ -519,7 +479,6 @@ void serialInput_driver(void) {
 			char cmdType[2];
 			strncpy(cmdType, tx_buf+4, 1);
 			cmdType[1] = '\0';
-
 			// s for sensor
 			if (strcmp(cmdType, "s") == 0) {
 				cmd_to_mobile = 1;
@@ -536,27 +495,19 @@ void serialInput_driver(void) {
     			if (length == 0 || length > 2) {
     			    printf("Invalid input. Please enter a number with 1 or 2 digits.\n");
     			}
-
-    			// Convert the string to an integer
-    			// Iterate through each character of the string
     			for (int i = 0; i < length; i++) {
-    			    // Check if the character is a digit
     			    if (num_str[i] >= '0' && num_str[i] <= '9') {
-    			        // For each digit, multiply the current integer_value by 10
-    			        // and add the numeric value of the current digit.
-    			        // Subtract '0' (ASCII 48) to get the actual integer value of the digit.
     			        integer_value = integer_value * 10 + (num_str[i] - '0');
     			    } else {
     			        printf("Invalid input. Please enter only digits.\n");
     			    }
     			}
-
-    			// Print the converted integer value
     			//printf("The integer value is: %d\n", integer_value);
 				printk("RECEIVED A COMMAND\n");
 				sensorInput = integer_value;
 				send_cmd_to_mobile = true;
 				modeInput = 0;
+				curMode = 0;
 
 			// m for mode
 			} else if (strcmp(cmdType, "m") == 0) {
