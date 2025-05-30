@@ -26,7 +26,7 @@ static const struct gpio_dt_spec led_green = GPIO_DT_SPEC_GET(LED_GREEN_NODE, gp
 static const struct gpio_dt_spec led_blue = GPIO_DT_SPEC_GET(LED_BLUE_NODE, gpios);
 
 #define DEFAULT_DELAY 1000
-#define DEFAULT_BROADCAST_TIME 500//250
+#define DEFAULT_BROADCAST_TIME 250 //500
 
 #define BROADCAST_UUID  0xca, 0x11, 0xed, 0xba, 0x1d, \
                         0xfa, 0xca, 0xde, 0x7a, 0x1e
@@ -230,7 +230,7 @@ static void take_temp(const struct device *dev) {
     }
 
     //sensor_values.temp = temp;
-    change_data(data_temp, sensor_value_to_double(&temp));
+    change_data(&data_temp, sensor_value_to_double(&temp));
     //bt_le_ext_adv_set_data(adv[0], ad_temp, ARRAY_SIZE(ad_temp), NULL, 0);
     printk("Temp: %lf\n", sensor_value_to_double(&temp));
 
@@ -248,7 +248,7 @@ static void take_humidity(const struct device *dev) {
     }
 
     //sensor_values.humidity = humidity;
-    change_data(data_humidity, sensor_value_to_double(&humidity));
+    change_data(&data_humidity, sensor_value_to_double(&humidity));
     //bt_le_ext_adv_set_data(adv[1], ad_humidity, ARRAY_SIZE(ad_humidity), NULL, 0);
     printk("Humidity: %lf\n", sensor_value_to_double(&humidity));
 
@@ -267,7 +267,7 @@ static void take_co2(const struct device *dev) {
     }
 
     //sensor_values.co2 = co2;
-    change_data(data_co2, sensor_value_to_double(&co2));
+    change_data(&data_co2, sensor_value_to_double(&co2));
     //bt_le_ext_adv_set_data(adv[2], ad_co2, ARRAY_SIZE(ad_co2), NULL, 0);
     printk("CO2: %lf\n", sensor_value_to_double(&co2));
 
@@ -289,7 +289,7 @@ static void take_tvoc(const struct device *dev) {
     }
 
     //sensor_values.tvoc = tvoc;
-    change_data(data_tvoc, sensor_value_to_double(&tvoc));
+    change_data(&data_tvoc, sensor_value_to_double(&tvoc));
     //bt_le_ext_adv_set_data(adv[3], ad_tvoc, ARRAY_SIZE(ad_tvoc), NULL, 0);
     printk("TVOC: %lf\n", sensor_value_to_double(&tvoc));
 
