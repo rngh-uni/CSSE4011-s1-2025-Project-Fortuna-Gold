@@ -285,15 +285,11 @@ void update_sensors_entry_point() {
         // take semaphore
         k_sem_take(&sensor_update_sem, K_FOREVER);
 
-        gpio_pin_set_dt(&led_blue, 1);
-
         // check flags & update
         if (mobile_flags & (1 << 0)) take_temp(temp_humidity_sensor);
         if (mobile_flags & (1 << 1)) take_humidity(temp_humidity_sensor);
         if (mobile_flags & (1 << 2)) take_co2(co2_tvoc_sensor);
         if (mobile_flags & (1 << 3)) take_tvoc(co2_tvoc_sensor);
-
-        gpio_pin_set_dt(&led_blue, 0);
 
         // if continuous broadcasting, give sensor_update_sem
         if (mobile_flags & (1 << 4)) {
@@ -341,12 +337,19 @@ void broadcast_sensors_entry_point() {
         k_msleep(DEFAULT_DELAY);
 
         // if not continuous, don't give semaphore back
-        if (!(mobile_flags & (1 << 4))) {continue;}
+        if ((mobile_flags & (1 << 4))) {
+            gpio_pin_set_dt(&led_blue, 1);
+
+            k_sem_give(&data_broadcast_sem);
+        } else {
+            gpio_pin_set_dt(&led_green, 0);
+            gpio_pin_set_dt(&led_red, 1);
         
-        gpio_pin_set_dt(&led_green, 0);
-        gpio_pin_set_dt(&led_red, 1);
-        k_sem_give(&data_broadcast_sem);
+            gpio_pin_set_dt(&led_blue, 0);
+        }
         
+        
+
     }
 
 }
