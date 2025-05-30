@@ -26,7 +26,7 @@ static const struct gpio_dt_spec led_green = GPIO_DT_SPEC_GET(LED_GREEN_NODE, gp
 static const struct gpio_dt_spec led_blue = GPIO_DT_SPEC_GET(LED_BLUE_NODE, gpios);
 
 #define DEFAULT_DELAY 1000
-#define DEFAULT_BROADCAST_TIME 250
+#define DEFAULT_BROADCAST_TIME 500//250
 
 #define BROADCAST_UUID  0xca, 0x11, 0xed, 0xba, 0x1d, \
                         0xfa, 0xca, 0xde, 0x7a, 0x1e
@@ -274,11 +274,14 @@ static void take_co2(const struct device *dev) {
 }
 static void take_tvoc(const struct device *dev) {
     struct sensor_value tvoc;
-    
+
+    sensor_sample_fetch(dev);
+    /*
     if (sensor_sample_fetch(dev) < 0) {
         printk("Sensor sample update error.\n");
-        return;
+        //return;
     }
+    */
 
     if (sensor_channel_get(dev, SENSOR_CHAN_VOC, &tvoc) < 0) {
         printk("Cannot read CCS811 TVOC channel\n");
@@ -387,7 +390,7 @@ void broadcast_sensors_entry_point() {
             bt_le_adv_stop();
         }
 
-        //k_msleep(DEFAULT_DELAY);
+        k_msleep(DEFAULT_DELAY);
 
         // if not continuous, don't give semaphore back
         if (!(mobile_flags & (1 << 4))) {continue;}
@@ -410,7 +413,7 @@ int bt_scanner_entry_point() {
         .type       = BT_LE_SCAN_TYPE_PASSIVE,
 		.options    = BT_LE_SCAN_OPT_NONE,
 		.interval   = BT_GAP_SCAN_FAST_INTERVAL,
-		.window     = BT_GAP_SCAN_FAST_WINDOW
+		.window     = BT_GAP_SCAN_FAST_WINDOW //BT_GAP_SCAN_SLOW_WINDOW_1
     };
     int err = 0;
 
