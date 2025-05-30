@@ -128,10 +128,6 @@ static void parse_packet_data(struct net_buf_simple *ad) {
                     uuid[i] = net_buf_simple_pull_u8(ad);
                 }
 
-                //uint16_t major = (net_buf_simple_pull_u8(ad) << 8 | net_buf_simple_pull_u8(ad));
-                //uint16_t minor = (net_buf_simple_pull_u8(ad) << 8) | net_buf_simple_pull_u8(ad);
-				//int8_t tx_power = (int8_t)net_buf_simple_pull_u8(ad);
-
                 /* Read in the packet bytes */
                 uint8_t command_byte = net_buf_simple_pull_u8(ad);
                 uint8_t sensor_flag_byte = net_buf_simple_pull_u8(ad);
@@ -229,9 +225,7 @@ static void take_temp(const struct device *dev) {
         return;
     }
 
-    //sensor_values.temp = temp;
     change_data(&data_temp, sensor_value_to_double(&temp));
-    //bt_le_ext_adv_set_data(adv[0], ad_temp, ARRAY_SIZE(ad_temp), NULL, 0);
     printk("Temp: %lf\n", sensor_value_to_double(&temp));
 
 }
@@ -247,9 +241,7 @@ static void take_humidity(const struct device *dev) {
         return;
     }
 
-    //sensor_values.humidity = humidity;
     change_data(&data_humidity, sensor_value_to_double(&humidity));
-    //bt_le_ext_adv_set_data(adv[1], ad_humidity, ARRAY_SIZE(ad_humidity), NULL, 0);
     printk("Humidity: %lf\n", sensor_value_to_double(&humidity));
 
 }
@@ -266,9 +258,7 @@ static void take_co2(const struct device *dev) {
         return;
     }
 
-    //sensor_values.co2 = co2;
     change_data(&data_co2, sensor_value_to_double(&co2));
-    //bt_le_ext_adv_set_data(adv[2], ad_co2, ARRAY_SIZE(ad_co2), NULL, 0);
     printk("CO2: %lf\n", sensor_value_to_double(&co2));
 
 }
@@ -276,21 +266,13 @@ static void take_tvoc(const struct device *dev) {
     struct sensor_value tvoc;
 
     sensor_sample_fetch(dev);
-    /*
-    if (sensor_sample_fetch(dev) < 0) {
-        printk("Sensor sample update error.\n");
-        //return;
-    }
-    */
 
     if (sensor_channel_get(dev, SENSOR_CHAN_VOC, &tvoc) < 0) {
         printk("Cannot read CCS811 TVOC channel\n");
         return;
     }
 
-    //sensor_values.tvoc = tvoc;
     change_data(&data_tvoc, sensor_value_to_double(&tvoc));
-    //bt_le_ext_adv_set_data(adv[3], ad_tvoc, ARRAY_SIZE(ad_tvoc), NULL, 0);
     printk("TVOC: %lf\n", sensor_value_to_double(&tvoc));
 
 }
@@ -327,40 +309,6 @@ void update_sensors_entry_point() {
     }    
 }
 void broadcast_sensors_entry_point() {
-
-    //k_msleep(500);
-
-    //struct bt_le_adv_param adv_param = {
-    //    .id = BT_ID_DEFAULT,
-    //    .sid = 0U,
-    //    .secondary_max_skip = 0U,
-    //    .options = BT_LE_ADV_OPT_EXT_ADV,
-	//	.interval_min = BT_GAP_ADV_FAST_INT_MIN_2,
-	//	.interval_max = BT_GAP_ADV_FAST_INT_MAX_2,
-	//	.peer = NULL,
-    //};
-
-    //int err;
-
-    // WARNING: DOESNT WORK DUE TO PDU SEMAPHORE TIMEOUT ON SETUP
-    // Create advertising set
-    //0 - temp | 1 - humidity | 2 - co2 | 3 - tvoc 
-    //for (int i = 0; i < CONFIG_BT_EXT_ADV_MAX_ADV_SET; i++) {
-    //    adv_param.sid = i;
-    //    
-    //    err = bt_le_ext_adv_create(&adv_param, NULL, &adv[i]);
-    //    if (err) {
-	//		printk("Failed to create advertising set %d (err %d)\n",
-	//		       i, err);
-	//		return err;
-	//	}
-    //}
-    // Set initial data
-    //bt_le_ext_adv_set_data(adv[0], ad_temp, ARRAY_SIZE(ad_temp), NULL, 0);
-    //bt_le_ext_adv_set_data(adv[1], ad_humidity, ARRAY_SIZE(ad_humidity), NULL, 0);
-    //bt_le_ext_adv_set_data(adv[2], ad_co2, ARRAY_SIZE(ad_co2), NULL, 0);
-    //bt_le_ext_adv_set_data(adv[3], ad_tvoc, ARRAY_SIZE(ad_tvoc), NULL, 0);
-    
 
     while (1) {
         k_sem_take(&data_broadcast_sem, K_FOREVER);
@@ -399,11 +347,6 @@ void broadcast_sensors_entry_point() {
         gpio_pin_set_dt(&led_red, 1);
         k_sem_give(&data_broadcast_sem);
         
-        // just suppress errors, everything will be stopped
-        //bt_le_ext_adv_stop(adv[0]);
-        //bt_le_ext_adv_stop(adv[1]);
-        //bt_le_ext_adv_stop(adv[2]);
-        //bt_le_ext_adv_stop(adv[3]);
     }
 
 }
@@ -413,7 +356,7 @@ int bt_scanner_entry_point() {
         .type       = BT_LE_SCAN_TYPE_PASSIVE,
 		.options    = BT_LE_SCAN_OPT_NONE,
 		.interval   = BT_GAP_SCAN_FAST_INTERVAL,
-		.window     = BT_GAP_SCAN_FAST_WINDOW //BT_GAP_SCAN_SLOW_WINDOW_1
+		.window     = BT_GAP_SCAN_FAST_WINDOW 
     };
     int err = 0;
 
